@@ -89,7 +89,10 @@ ENV/
 # Rope project settings
 .ropeproject
 
-data/coco   
-data/pretrained_models
+data/*
 tags
 output
+*.exp
+*.obj
+*.lib
+*.pdb

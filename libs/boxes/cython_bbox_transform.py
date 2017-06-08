@@ -6,7 +6,7 @@ import sys, pkg_resources, imp
 
 def __bootstrap__():
   global __bootstrap__, __loader__, __file__
-  __file__ = pkg_resources.resource_filename(__name__, 'cython_bbox_transform.so')
+  __file__ = pkg_resources.resource_filename(__name__, 'cython_bbox_transform.cp35-win_amd64.pyd')
   __loader__ = None
   del __bootstrap__, __loader__
   imp.load_dynamic(__name__, __file__)

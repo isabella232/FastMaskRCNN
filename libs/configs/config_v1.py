@@ -8,11 +8,11 @@ import tensorflow as tf
 #                  restore
 ##########################
 tf.app.flags.DEFINE_string(
-    'train_dir', './output/mask_rcnn/',
+    'train_dir', '../output/mask_rcnn/',
     'Directory where checkpoints and event logs are written to.')
 
 tf.app.flags.DEFINE_string(
-    'pretrained_model', './data/pretrained_models/resnet_v1_50.ckpt',
+    'pretrained_model', '../data/pretrained_models/resnet_v1_50.ckpt',
     'Path to pretrained model')
 
 ##########################
@@ -42,7 +42,7 @@ tf.app.flags.DEFINE_string(
     'The name of the train/test/val split.')
 
 tf.app.flags.DEFINE_string(
-    'dataset_dir', 'data/coco/',
+    'dataset_dir', '../data/coco/',
     'The directory where the dataset files are stored.')
 
 tf.app.flags.DEFINE_integer(
@@ -66,8 +66,9 @@ tf.app.flags.DEFINE_integer(
     'save_interval_secs', 7200,
     'The frequency with which the model is saved, in seconds.')
 
+# was set to 2500000 by default
 tf.app.flags.DEFINE_integer(
-    'max_iters', 2500000,
+    'max_iters', 250,
     'max iterations')
 
 ######################

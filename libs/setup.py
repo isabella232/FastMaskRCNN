@@ -7,10 +7,16 @@
 
 import os
 from os.path import join as pjoin
-import numpy as np
-from distutils.core import setup
-from distutils.extension import Extension
+
+if os.name == 'nt':
+    from setuptools import setup
+    from setuptools import Extension
+else:
+    from distutils.core import setup
+    from distutils.extension import Extension
+
 from Cython.Distutils import build_ext
+import numpy as np
 
 def find_in_path(name, path):
     "Find a file in a search path"
@@ -34,7 +40,10 @@ def locate_cuda():
     # first check if the CUDAHOME env variable is in use
     if 'CUDAHOME' in os.environ:
         home = os.environ['CUDAHOME']
-        nvcc = pjoin(home, 'bin', 'nvcc')
+        if os.name == 'nt':
+            nvcc = pjoin(home, 'bin')
+        else:
+            nvcc = pjoin(home, 'bin', 'nvcc')
     else:
         # otherwise, search the PATH for NVCC
         default_path = pjoin(os.sep, 'usr', 'local', 'cuda', 'bin')
@@ -44,12 +53,18 @@ def locate_cuda():
                 'located in your $PATH. Either add it to your path, or set $CUDAHOME')
         home = os.path.dirname(os.path.dirname(nvcc))
 
-    cudaconfig = {'home':home, 'nvcc':nvcc,
-                  'include': pjoin(home, 'include'),
-                  'lib64': pjoin(home, 'lib64')}
-    for k, v in cudaconfig.iteritems():
-        if not os.path.exists(v):
-            raise EnvironmentError('The CUDA %s path could not be located in %s' % (k, v))
+    if os.name == 'nt':
+        cudaconfig = {'home':home, 'nvcc':nvcc,
+                      'include': pjoin(home, 'include'),
+                      'lib64': pjoin(home, 'lib/x64')}
+    else:
+        cudaconfig = {'home':home, 'nvcc':nvcc,
+                      'include': pjoin(home, 'include'),
+                      'lib64': pjoin(home, 'lib64')}
+
+    for key, value in iter(cudaconfig.items()):
+        if not os.path.exists(value):
+            raise EnvironmentError('The CUDA %s path could not be located in %s' % (key, value))
 
     return cudaconfig
 CUDA = locate_cuda()
@@ -73,23 +88,32 @@ def customize_compiler_for_nvcc(self):
     # tell the compiler it can processes .cu
     self.src_extensions.append('.cu')
 
-    # save references to the default compiler_so and _comple methods
-    default_compiler_so = self.compiler_so
-    super = self._compile
+    if not os.name == 'nt':
+        # save references to the default compiler_so and _comple methods
+        default_compiler_so = self.compiler_so
+        super = self._compile
 
     # now redefine the _compile method. This gets executed for each
     # object but distutils doesn't have the ability to change compilers
     # based on source extension: we add it.
     def _compile(obj, src, ext, cc_args, extra_postargs, pp_opts):
-        print extra_postargs
-        if os.path.splitext(src)[1] == '.cu':
-            # use the cuda for .cu files
-            self.set_executable('compiler_so', CUDA['nvcc'])
-            # use only a subset of the extra_postargs, which are 1-1 translated
-            # from the extra_compile_args in the Extension class
-            postargs = extra_postargs['nvcc']
+        print (extra_postargs)
+
+        if os.name == 'nt':
+            self.compiler.src_extensions.append('.cu')
+            self.compiler.set_executable('compiler', 'nvcc')
+            self.compiler.set_executable('linker', 'nvcc --shared')
+            if hasattr(self.compiler, '_c_extensions'):
+                self.compiler._c_extensions.append('.cu')  # needed for Windows
         else:
-            postargs = extra_postargs['gcc']
+            if os.path.splitext(src)[1] == '.cu':
+                # use the cuda for .cu files
+                self.set_executable('compiler_so', CUDA['nvcc'])
+                # use only a subset of the extra_postargs, which are 1-1 translated
+                # from the extra_compile_args in the Extension class
+                postargs = extra_postargs['nvcc']
+            else:
+                postargs = extra_postargs['gcc']
 
         super(obj, src, ext, cc_args, postargs, pp_opts)
         # reset the default compiler_so, which we might have changed for cuda
